@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#06070d" />
+  <title>KHELL Horse — Yarış Fırsat Motoru</title>
+  <meta name="description" content="KHELL Horse günlük yarış fırsatlarını, sürpriz adayları ve risk sinyallerini işaretler." />
+  <link rel="stylesheet" href="KHELL_style.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+
+    <header class="topbar">
+      <div>
+        <div class="brand">KHELL <span>HORSE</span></div>
+        <div class="brand-sub">Yarış fırsat motoru</div>
+      </div>
+      <div class="live-pill"><span></span> CANLI</div>
+    </header>
+
+    <main class="view view-active" id="view-home">
+
+      <section class="hero-card">
+        <div class="hero-copy">
+          <div class="eyebrow">🔥 Günün gizli bombası</div>
+          <h1 id="heroHorse">Yükleniyor</h1>
+          <p id="heroRace">KHELL günlük yarışları tarıyor.</p>
+
+          <div class="hero-stats">
+            <div>
+              <small>ORAN</small>
+              <strong id="heroOdds">--</strong>
+            </div>
+            <div>
+              <small>SÜRPRİZ</small>
+              <strong class="green" id="heroScore">--</strong>
+            </div>
+            <div>
+              <small>RİSK</small>
+              <strong class="orange" id="heroRisk">--</strong>
+            </div>
+          </div>
+
+          <p class="hero-note" id="heroNote">KHELL fırsat arıyor.</p>
+        </div>
+
+        <div class="hero-ring">
+          <svg viewBox="0 0 140 140" aria-hidden="true">
+            <circle class="ring-bg" cx="70" cy="70" r="58"></circle>
+            <circle class="ring-fg" id="heroRing" cx="70" cy="70" r="58"></circle>
+          </svg>
+          <div class="ring-text">
+            <b id="ringScore">%--</b>
+            <span>SÜRPRİZ</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="ticker">
+        <span id="tickerLabel">⚠️ KHELL risk görüyor</span>
+        <marquee id="liveTicker">Veriler hazırlanıyor...</marquee>
+      </section>
+
+      <section class="section-block">
+        <div class="section-head">
+          <h2>Günlük Fırsatlar</h2>
+          <span>KHELL işaretledi</span>
+        </div>
+        <div class="opportunity-grid" id="opportunities"></div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-head">
+          <h2>Bugünkü Koşular</h2>
+          <span id="raceCount">-- koşu</span>
+        </div>
+        <div class="race-list" id="raceList"></div>
+      </section>
+
+    </main>
+
+    <main class="view" id="view-races">
+      <section class="section-block top-space">
+        <div class="section-head">
+          <h2>Tüm Koşular</h2>
+          <span>detaylı akış</span>
+        </div>
+        <div class="race-list" id="raceListFull"></div>
+      </section>
+    </main>
+
+    <main class="view" id="view-coupon">
+      <section class="section-block top-space">
+        <div class="section-head">
+          <h2>Kupon Merkezi</h2>
+          <span>KHELL önerileri</span>
+        </div>
+        <div class="coupon-tabs">
+          <button class="tab-btn active" data-coupon="safe">Güvenli</button>
+          <button class="tab-btn" data-coupon="balanced">Dengeli</button>
+          <button class="tab-btn" data-coupon="surprise">Sürpriz</button>
+          <button class="tab-btn" data-coupon="exacta">İkili</button>
+          <button class="tab-btn" data-coupon="tabela">Tabela</button>
+          <button class="tab-btn" data-coupon="triple">Üçlü</button>
+        </div>
+        <div id="couponContent"></div>
+      </section>
+    </main>
+
+    <main class="view" id="view-wins">
+      <section class="section-block top-space">
+        <div class="section-head">
+          <h2>Tutanlar</h2>
+          <span>KHELL yakaladı</span>
+        </div>
+        <div class="wins-list" id="winsList"></div>
+      </section>
+    </main>
+
+    <main class="view" id="view-vip">
+      <section class="vip-hero top-space">
+        <div class="vip-crown">👑</div>
+        <h2>KHELL VIP</h2>
+        <p>Gizli bombalar, risk alarmları, özel kuponlar ve Telegram bildirimleri.</p>
+
+        <div class="vip-features">
+          <div>✅ Günlük sürpriz listesi</div>
+          <div>✅ Favori risk alarmı</div>
+          <div>✅ Sürpriz ikili/tabela/üçlü</div>
+          <div>✅ Telegram özel kanal</div>
+        </div>
+      </section>
+
+      <section class="price-grid">
+        <a class="price-card" id="waDaily" target="_blank" rel="noopener">
+          <span>⚡</span><b>Günlük VIP</b><small>24 saat erişim</small><strong>₺99</strong>
+        </a>
+        <a class="price-card featured" id="waWeekly" target="_blank" rel="noopener">
+          <span>🔥</span><b>Haftalık VIP</b><small>7 gün erişim</small><strong>₺399</strong>
+        </a>
+        <a class="price-card" id="waMonthly" target="_blank" rel="noopener">
+          <span>💎</span><b>Aylık Telegram</b><small>30 gün özel kanal</small><strong>₺999</strong>
+        </a>
+      </section>
+
+      <p class="disclaimer">KHELL Horse kesin kazanç vaadi sunmaz. Sistem yalnızca analiz ve eğlence amaçlıdır. At yarışları risk içerir.</p>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-view="home">🏠<span>Ana</span></button>
+      <button class="nav-btn" data-view="races">🏇<span>Koşular</span></button>
+      <button class="nav-btn" data-view="coupon">🎯<span>Kupon</span></button>
+      <button class="nav-btn" data-view="wins">🏆<span>Tutanlar</span></button>
+      <button class="nav-btn" data-view="vip">👑<span>VIP</span></button>
+    </nav>
+
+    <a class="sticky-wa" id="stickyWa" target="_blank" rel="noopener">💬 VIP'e Katıl</a>
+
+  </div>
+
+  <div class="modal" id="detailModal">
+    <div class="modal-card">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="KHELL_config.js"></script>
+  <script src="KHELL_scoring.js"></script>
+  <script src="KHELL_dataDemo.js"></script>
+  <script src="KHELL_app.js"></script>
+</body>
+</html>
