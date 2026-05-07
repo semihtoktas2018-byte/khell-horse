@@ -291,7 +291,10 @@
       if(list.length) items.push({race:a.raceName, list:list.slice(0,3)});
     });
 
-    q("couponContent").innerHTML = items.map(block=>{
+    // copyText'leri index bazlı sakla — HTML attribute'e yazılmaz
+    const copyTexts = {};
+
+    q("couponContent").innerHTML = items.map((block, blockIdx)=>{
       const totalOdds = block.list.reduce((acc,i)=>{
         const o = parseFloat(i.odds || i.potential || i.tabelaScore || i.tripleScore || 1);
         return acc * (isNaN(o) ? 1 : o);
@@ -299,7 +302,7 @@
       const trustPct = type==="safe" ? 84 : type==="balanced" ? 72 : type==="surprise" ? 61 : 76;
       const riskLabel = type==="safe" ? {text:"DÜŞÜK RİSK",cls:"risk"} : type==="surprise" ? {text:"YÜKSEK RİSK",cls:"risk"} : {text:"ORTA RİSK",cls:"risk"};
 
-      // Her at için numara ve ismi güvenli şekilde çöz — tekrar ve undefined önlenir
+      // Tekrar eden atları filtrele
       const seen = new Set();
       const uniqueList = block.list.filter(i => {
         const key = String(i.horseNumber ?? i.number ?? '') + String(i.horseName ?? i.name ?? '');
@@ -308,12 +311,12 @@
         return true;
       });
 
-      // Kopyalanacak metin: "1. Koşu\n1 - AT ADI (14.80)\n2 - AT ADI (9.40)"
-      const copyText = block.race + '\n' + uniqueList.map(i => {
+      // copyText JS tarafında saklanır, HTML'e yazılmaz
+      copyTexts[blockIdx] = block.race + '\n' + uniqueList.map(i => {
         const num  = i.horseNumber ?? i.number ?? '-';
         const name = i.horseName  ?? i.name    ?? 'Bilinmiyor';
         const val  = i.odds || i.potential || i.tabelaScore || i.tripleScore || '';
-        return `${num} - ${name}${val ? ' (' + val + ')' : ''}`;
+        return num + ' - ' + name + (val ? ' (' + val + ')' : '');
       }).join('\n');
 
       return `
@@ -328,16 +331,21 @@
           const num  = i.horseNumber ?? i.number ?? '-';
           const name = i.horseName  ?? i.name    ?? 'Bilinmiyor';
           const val  = i.odds || i.potential || i.tabelaScore || i.tripleScore || '';
-          return `
-          <div class="coupon-item">
-            <b>${num} - ${name}</b>
-            <span>${val}</span>
-          </div>`;
+          return `<div class="coupon-item"><b>${num} - ${name}</b><span>${val}</span></div>`;
         }).join("")}
-        <button class="share-btn" onclick="navigator.clipboard && navigator.clipboard.writeText(this.dataset.copy)" data-copy="${copyText.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}">Kopyala</button>
-      </div>
-    `;
+        <button class="share-btn" data-block="${blockIdx}">Kopyala</button>
+      </div>`;
     }).join("") || `<div class="coupon-card">Bu kategoride veri yok.</div>`;
+
+    // inline onclick yok — render sonrası event bağla
+    document.querySelectorAll("#couponContent .share-btn").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const txt = copyTexts[this.dataset.block] || '';
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(txt);
+        }
+      });
+    });
   }
 
   function renderWins(){
