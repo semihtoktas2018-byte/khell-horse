@@ -334,10 +334,7 @@
             <span>${val}</span>
           </div>`;
         }).join("")}
-        <button class="share-btn" onclick="
-          var txt = ${JSON.stringify('')} || this.dataset.copy;
-          navigator.clipboard && navigator.clipboard.writeText(this.dataset.copy);
-        " data-copy="${copyText.replace(/"/g, '&quot;')}">Kopyala</button>
+        <button class="share-btn" onclick="navigator.clipboard && navigator.clipboard.writeText(this.dataset.copy)" data-copy="${copyText.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}">Kopyala</button>
       </div>
     `;
     }).join("") || `<div class="coupon-card">Bu kategoride veri yok.</div>`;
