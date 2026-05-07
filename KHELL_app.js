@@ -288,15 +288,34 @@
       if(type==="exacta") list = (a.exactaCandidates || []).map(x=>({horseNumber:`${x.first}→${x.second}`,horseName:"Sürpriz ikili",odds:x.potential}));
       if(type==="tabela") list = a.tabelaCandidates || [];
       if(type==="triple") list = a.tripleCandidates || [];
-      if(list.length) items.push({race:a.raceName,list:list.slice(0,3)});
+      if(list.length) items.push({race:a.raceName, list:list.slice(0,3)});
     });
+
     q("couponContent").innerHTML = items.map(block=>{
       const totalOdds = block.list.reduce((acc,i)=>{
         const o = parseFloat(i.odds || i.potential || i.tabelaScore || i.tripleScore || 1);
         return acc * (isNaN(o) ? 1 : o);
       }, 1).toFixed(2);
-      const trustPct = type === "safe" ? 84 : type === "balanced" ? 72 : type === "surprise" ? 61 : 76;
-      const riskLabel = type === "safe" ? {text:"DÜŞÜK RİSK",cls:"risk"} : type === "surprise" ? {text:"YÜKSEK RİSK",cls:"risk"} : {text:"ORTA RİSK",cls:"risk"};
+      const trustPct = type==="safe" ? 84 : type==="balanced" ? 72 : type==="surprise" ? 61 : 76;
+      const riskLabel = type==="safe" ? {text:"DÜŞÜK RİSK",cls:"risk"} : type==="surprise" ? {text:"YÜKSEK RİSK",cls:"risk"} : {text:"ORTA RİSK",cls:"risk"};
+
+      // Her at için numara ve ismi güvenli şekilde çöz — tekrar ve undefined önlenir
+      const seen = new Set();
+      const uniqueList = block.list.filter(i => {
+        const key = String(i.horseNumber ?? i.number ?? '') + String(i.horseName ?? i.name ?? '');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // Kopyalanacak metin: "1. Koşu\n1 - AT ADI (14.80)\n2 - AT ADI (9.40)"
+      const copyText = block.race + '\n' + uniqueList.map(i => {
+        const num  = i.horseNumber ?? i.number ?? '-';
+        const name = i.horseName  ?? i.name    ?? 'Bilinmiyor';
+        const val  = i.odds || i.potential || i.tabelaScore || i.tripleScore || '';
+        return `${num} - ${name}${val ? ' (' + val + ')' : ''}`;
+      }).join('\n');
+
       return `
       <div class="coupon-card">
         <div class="coupon-title">${block.race}</div>
@@ -305,15 +324,23 @@
           <span class="coupon-badge trust">%${trustPct} güven</span>
           <span class="coupon-badge ${riskLabel.cls}">${riskLabel.text}</span>
         </div>
-        ${block.list.map(i=>`
+        ${uniqueList.map(i => {
+          const num  = i.horseNumber ?? i.number ?? '-';
+          const name = i.horseName  ?? i.name    ?? 'Bilinmiyor';
+          const val  = i.odds || i.potential || i.tabelaScore || i.tripleScore || '';
+          return `
           <div class="coupon-item">
-            <b>${i.horseNumber || i.number} - ${i.horseName || i.name || ""}</b>
-            <span>${i.odds || i.potential || i.tabelaScore || i.tripleScore || ""}</span>
-          </div>
-        `).join("")}
-        <button class="share-btn" onclick="navigator.clipboard && navigator.clipboard.writeText('KHELL kupon önerisi: ${block.race}');">Kopyala</button>
+            <b>${num} - ${name}</b>
+            <span>${val}</span>
+          </div>`;
+        }).join("")}
+        <button class="share-btn" onclick="
+          var txt = ${JSON.stringify('')} || this.dataset.copy;
+          navigator.clipboard && navigator.clipboard.writeText(this.dataset.copy);
+        " data-copy="${copyText.replace(/"/g, '&quot;')}">Kopyala</button>
       </div>
-    `}).join("") || `<div class="coupon-card">Bu kategoride veri yok.</div>`;
+    `;
+    }).join("") || `<div class="coupon-card">Bu kategoride veri yok.</div>`;
   }
 
   function renderWins(){
