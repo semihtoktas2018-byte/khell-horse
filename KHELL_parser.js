@@ -264,7 +264,18 @@
      */
     autoLoad: function (callback) {
       var self = this;
-      var url  = '/data/latest.json';
+      // Otomatik base path: script tag'inin src'sinden klasör yolunu al
+      // Hem local (/data/) hem GitHub Pages (/khell-horse/data/) için çalışır
+      var base = (function() {
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+          if (scripts[i].src && scripts[i].src.indexOf('KHELL_parser') !== -1) {
+            return scripts[i].src.replace(/KHELL_parser\.js.*$/, '');
+          }
+        }
+        return './'; // fallback
+      })();
+      var url = base + 'data/latest.json';
       this.loadJSON(url, function (parsed) {
         if (typeof callback === 'function') callback(!!parsed);
       });
@@ -279,7 +290,16 @@
      */
     archiveLoad: function (dateStr, callback) {
       if (!dateStr) { console.warn('KHELL Parser: archiveLoad — tarih belirtilmedi'); return; }
-      var url = '/data/' + dateStr + '.json';
+      var base = (function() {
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+          if (scripts[i].src && scripts[i].src.indexOf('KHELL_parser') !== -1) {
+            return scripts[i].src.replace(/KHELL_parser\.js.*$/, '');
+          }
+        }
+        return './';
+      })();
+      var url = base + 'data/' + dateStr + '.json';
       this.loadJSON(url, callback);
     },
 
