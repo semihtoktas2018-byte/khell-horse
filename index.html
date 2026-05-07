@@ -59,7 +59,7 @@
       </section>
 
       <section class="ticker">
-        <span id="tickerLabel">⚠️ KHELL risk görüyor</span>
+        <span>⚠️ KHELL risk görüyor</span>
         <marquee id="liveTicker">Veriler hazırlanıyor...</marquee>
       </section>
 
@@ -172,6 +172,23 @@
   <script src="KHELL_config.js"></script>
   <script src="KHELL_scoring.js"></script>
   <script src="KHELL_dataDemo.js"></script>
-  <script src="KHELL_app.js"></script>
+  <script src="KHELL_parser.js"></script>
+  <script>
+    function khellBoot() {
+      var s = document.createElement('script');
+      s.src = 'KHELL_app.js';
+      document.body.appendChild(s);
+    }
+    // Parser varsa latest.json'ı dene; sonuç ne olursa app.js başlasın
+    if (window.KhellParser) {
+      try {
+        KhellParser.autoLoad(function() { khellBoot(); });
+      } catch(e) {
+        khellBoot(); // parser patlarsa yine de başlat
+      }
+    } else {
+      khellBoot(); // parser yoksa direkt başlat
+    }
+  </script>
 </body>
 </html>
