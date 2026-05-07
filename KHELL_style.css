@@ -404,3 +404,4 @@ body:before{
   .horse-row{grid-template-columns:34px 1fr 58px;gap:8px}
   .horse-row .metric:nth-child(n+4){display:none}
 }
+Done
