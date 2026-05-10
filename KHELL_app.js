@@ -282,11 +282,25 @@
         `).join("")}
       </div>
     `;
-    q("detailModal").classList.add("show");
+    modalOpen();
   }
 
-  q("modalClose").addEventListener("click",()=>q("detailModal").classList.remove("show"));
-  q("detailModal").addEventListener("click", e => { if(e.target.id === "detailModal") q("detailModal").classList.remove("show") });
+  function modalOpen(){
+    q("detailModal").classList.add("show");
+    document.body.classList.add("modal-open");
+  }
+  function modalClose(){
+    q("detailModal").classList.remove("show");
+    document.body.classList.remove("modal-open");
+  }
+
+  q("modalClose").addEventListener("click", modalClose);
+  q("detailModal").addEventListener("click", function(e){
+    if(e.target === this) modalClose();
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape") modalClose();
+  });
 
   // copyTexts modül seviyesinde — closure sorunu olmaz
   const couponCopyTexts = {};
