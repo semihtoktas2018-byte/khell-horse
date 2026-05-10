@@ -85,6 +85,9 @@
     };
   }
 
+  // couponCopyTexts modül seviyesinde — renderCoupon her çağrıldığında doğru çalışır
+  const couponCopyTexts = {};
+
   function q(id){return document.getElementById(id)}
   function moneyLink(text){return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`}
 
@@ -301,9 +304,6 @@
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape") modalClose();
   });
-
-  // copyTexts modül seviyesinde — closure sorunu olmaz
-  const couponCopyTexts = {};
 
   function renderCoupon(type){
     const items = [];
