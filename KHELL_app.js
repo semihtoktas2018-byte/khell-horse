@@ -88,6 +88,14 @@
   function q(id){return document.getElementById(id)}
   function moneyLink(text){return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`}
 
+  // At ismi/numarası için merkezi çözüm — tüm field alias'larını kapsar
+  function resolveHorseName(h){ return h.name || h.horseName || h.atAdi || ''; }
+  function resolveHorseNum(h){ const n = h.number ?? h.horseNumber ?? h.no ?? ''; return n === '' ? '-' : n; }
+  function isValidHorse(h){
+    const name = resolveHorseName(h);
+    return name && name !== 'AT ADI' && name !== 'Bilinmiyor' && name !== '';
+  }
+
   const allAnalyses = (analysis.raceAnalyses || []).map((a,idx)=>({...a, race:races[idx] || {}}));
   const bomb = analysis.bestHiddenBomb || allAnalyses[0]?.hiddenBomb || {};
   const heroRace = allAnalyses.find(a => a.raceName === bomb.raceName) || allAnalyses[0];
@@ -224,15 +232,17 @@
   function openDetail(idx){
     const a = allAnalyses[idx];
     if(!a) return;
-    const horses = (a.horses || []).map(h => ({
-      ...h,
-      number: h.number || h.horseNumber,
-      name: h.name || h.horseName,
-      formScore: h.formScore || 70,
-      surpriseScore: h.surpriseScore || 70,
-      riskScore: h.riskScore || 35,
-      odds: h.odds || "-"
-    }));
+    const horses = (a.horses || [])
+      .filter(isValidHorse)
+      .map(h => ({
+        ...h,
+        number: resolveHorseNum(h),
+        name: resolveHorseName(h),
+        formScore: h.formScore || 70,
+        surpriseScore: h.surpriseScore || 70,
+        riskScore: h.riskScore || 35,
+        odds: h.odds || "-"
+      }));
     const pickNo = a.hiddenBomb?.horseNumber;
     const bombH = horses.find(h => h.number == pickNo) || horses[0];
     const raceRisk = riskText(a.hiddenBomb?.surpriseScore || 70);
@@ -278,6 +288,9 @@
   q("modalClose").addEventListener("click",()=>q("detailModal").classList.remove("show"));
   q("detailModal").addEventListener("click", e => { if(e.target.id === "detailModal") q("detailModal").classList.remove("show") });
 
+  // copyTexts modül seviyesinde — closure sorunu olmaz
+  const couponCopyTexts = {};
+
   function renderCoupon(type){
     const items = [];
     allAnalyses.forEach(a=>{
@@ -291,9 +304,6 @@
       if(list.length) items.push({race:a.raceName, list:list.slice(0,3)});
     });
 
-    // copyText'leri index bazlı sakla — HTML attribute'e yazılmaz
-    const copyTexts = {};
-
     q("couponContent").innerHTML = items.map((block, blockIdx)=>{
       const totalOdds = block.list.reduce((acc,i)=>{
         const o = parseFloat(i.odds || i.potential || i.tabelaScore || i.tripleScore || 1);
@@ -302,19 +312,23 @@
       const trustPct = type==="safe" ? 84 : type==="balanced" ? 72 : type==="surprise" ? 61 : 76;
       const riskLabel = type==="safe" ? {text:"DÜŞÜK RİSK",cls:"risk"} : type==="surprise" ? {text:"YÜKSEK RİSK",cls:"risk"} : {text:"ORTA RİSK",cls:"risk"};
 
-      // Tekrar eden atları filtrele
+      // Şablon/boş/duplicate atları filtrele
       const seen = new Set();
       const uniqueList = block.list.filter(i => {
-        const key = String(i.horseNumber ?? i.number ?? '') + String(i.horseName ?? i.name ?? '');
-        if (seen.has(key)) return false;
+        const num  = i.horseNumber ?? i.number ?? '';
+        const name = i.horseName  ?? i.name    ?? '';
+        if(!name || name === 'AT ADI' || name === 'Bilinmiyor') return false;
+        const key = String(num) + String(name);
+        if(seen.has(key)) return false;
         seen.add(key);
         return true;
       });
 
-      // copyText JS tarafında saklanır, HTML'e yazılmaz
-      copyTexts[blockIdx] = block.race + '\n' + uniqueList.map(i => {
+      if(!uniqueList.length) return '';
+
+      couponCopyTexts[blockIdx] = block.race + '\n' + uniqueList.map(i => {
         const num  = i.horseNumber ?? i.number ?? '-';
-        const name = i.horseName  ?? i.name    ?? 'Bilinmiyor';
+        const name = i.horseName  ?? i.name    ?? '';
         const val  = i.odds || i.potential || i.tabelaScore || i.tripleScore || '';
         return num + ' - ' + name + (val ? ' (' + val + ')' : '');
       }).join('\n');
@@ -329,21 +343,18 @@
         </div>
         ${uniqueList.map(i => {
           const num  = i.horseNumber ?? i.number ?? '-';
-          const name = i.horseName  ?? i.name    ?? 'Bilinmiyor';
+          const name = i.horseName  ?? i.name    ?? '';
           const val  = i.odds || i.potential || i.tabelaScore || i.tripleScore || '';
           return `<div class="coupon-item"><b>${num} - ${name}</b><span>${val}</span></div>`;
         }).join("")}
         <button class="share-btn" data-block="${blockIdx}">Kopyala</button>
       </div>`;
-    }).join("") || `<div class="coupon-card">Bu kategoride veri yok.</div>`;
+    }).filter(Boolean).join("") || `<div class="coupon-card">Bu kategoride veri yok.</div>`;
 
-    // inline onclick yok — render sonrası event bağla
     document.querySelectorAll("#couponContent .share-btn").forEach(btn => {
       btn.addEventListener("click", function() {
-        const txt = copyTexts[this.dataset.block] || '';
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(txt);
-        }
+        const txt = couponCopyTexts[this.dataset.block] || '';
+        if(navigator.clipboard) navigator.clipboard.writeText(txt);
       });
     });
   }
