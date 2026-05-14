@@ -41,7 +41,7 @@
       raceName: r.raceName || r.name || `${idx+1}. Koşu`,
       time: r.time || r.hour || ["13:00","13:45","14:30","15:15","16:00"][idx] || "--:--",
       track: r.track || r.hippodrome || "İstanbul Veliefendi",
-      surface: (r.surface || "ÇİM").toString().toUpperCase(),
+      surface: (r.surface || "çim").toString().toLowerCase(),
       distance: r.distance || 1400,
       type: r.type || r.category || "Handikap",
       horses: Array.isArray(r.horses) ? r.horses : []
@@ -232,6 +232,66 @@
     `;
   }
 
+  // ── KHELL at yorumu üretici ──────────────────────────
+  function khellHorseComment(h, isPick){
+    const sc  = h.surpriseScore || 70;
+    const rs  = h.riskScore     || 35;
+    const fs  = h.formScore     || 70;
+    const odd = parseFloat(h.odds) || 5;
+    const agf = parseFloat(h.agf)  || 10;
+    const hasData = h.jockey && h.odds && h.formScore;
+    if(!hasData) return "Bazı veri alanları eksik olduğu için yorum sınırlıdır.";
+    if(h.isFavorite && rs >= 60) return "KHELL bu favoride risk görüyor. AGF yüksek, baskı altında izlenmeli.";
+    if(sc >= 82 && odd >= 8)     return "KHELL bu atta oran/AGF dengesine göre değerli aday sinyali görüyor.";
+    if(sc >= 82)                 return "KHELL bu atta sürpriz potansiyeli görüyor. Form seyri dikkat çekici.";
+    if(odd >= 8 && agf <= 6)     return "Oran/AGF dengesi değerli bölgede. KHELL izlemekte.";
+    if(rs >= 65)                 return "KHELL bu atta risk görüyor. Dikkatli değerlendirilmelidir.";
+    if(fs <= 45)                 return "Form tarafı zayıf. KHELL bu koşuda sınırlı potansiyel görüyor.";
+    if(isPick)                   return "KHELL bu atta sürpriz potansiyeli görüyor. Tabela/sürpriz adayı olarak izleniyor.";
+    return "KHELL bu atı standart form beklentisi içinde değerlendiriyor.";
+  }
+
+  function khellHorseTag(h, isPick){
+    const sc  = h.surpriseScore || 70;
+    const rs  = h.riskScore     || 35;
+    const odd = parseFloat(h.odds) || 5;
+    if(h.isFavorite && rs >= 60) return {label:"Riskli Favori",   cls:"tag-risk"};
+    if(sc >= 82 && odd >= 8)     return {label:"Değerli Oran Adayı", cls:"tag-value"};
+    if(sc >= 82)                 return {label:"Sürpriz Potansiyeli", cls:"tag-surprise"};
+    if(isPick)                   return {label:"Tabela Adayı",     cls:"tag-tabela"};
+    if(rs >= 65)                 return {label:"Riskli",           cls:"tag-risk"};
+    return                              {label:"İzlemeye Değer",   cls:"tag-watch"};
+  }
+
+  function horseStrengths(h){
+    const list = [];
+    const dist = parseFloat(h.distance) || 1400;
+    const minD = parseFloat(h.preferredDistanceMin) || dist - 300;
+    const maxD = parseFloat(h.preferredDistanceMax) || dist + 300;
+    if(dist >= minD && dist <= maxD)                       list.push("Mesafe uyumu iyi");
+    if((h.surface||"") === (h.preferredSurface||""))       list.push("Zemin tercihi uygun");
+    if(parseFloat(h.agf) <= 6 && (h.surpriseScore||70)>=75) list.push("AGF düşük, skor yüksek");
+    if(parseFloat(h.odds) >= 8 && (h.surpriseScore||70)>=75) list.push("Oran değerli bölgede");
+    if((h.jockeyWinRate||0) >= 18)                         list.push("Jokey kazanma oranı yüksek");
+    if((h.trainerWinRate||0) >= 15)                        list.push("Antrenör kazanma oranı iyi");
+    return list;
+  }
+
+  function horseWeaknesses(h){
+    const list = [];
+    const dist = parseFloat(h.distance) || 1400;
+    const minD = parseFloat(h.preferredDistanceMin) || dist - 300;
+    const maxD = parseFloat(h.preferredDistanceMax) || dist + 300;
+    if(dist < minD || dist > maxD)                         list.push("Mesafe tercihi dışında");
+    if((h.surface||"") !== (h.preferredSurface||""))       list.push("Zemin uyumsuzluğu var");
+    if((h.formScore||70) <= 45)                            list.push("Form verisi zayıf");
+    if((h.jockeyWinRate||0) <= 10)                         list.push("Jokey etkisi düşük");
+    if((h.trainerWinRate||0) <= 8)                         list.push("Antrenör etkisi düşük");
+    if((h.riskScore||35) >= 65)                            list.push("Risk skoru yüksek");
+    if(!h.jockey || !h.odds)                               list.push("Eksik veri alanı mevcut");
+    return list;
+  }
+
   function openDetail(idx){
     const a = allAnalyses[idx];
     if(!a) return;
@@ -239,54 +299,99 @@
       .filter(isValidHorse)
       .map(h => ({
         ...h,
-        number: resolveHorseNum(h),
-        name: resolveHorseName(h),
-        formScore: h.formScore || 70,
-        surpriseScore: h.surpriseScore || 70,
-        riskScore: h.riskScore || 35,
-        odds: h.odds || "-"
+        number:       resolveHorseNum(h),
+        name:         resolveHorseName(h),
+        formScore:    h.formScore    || 70,
+        surpriseScore:h.surpriseScore|| 70,
+        riskScore:    h.riskScore    || 35,
+        odds:         h.odds         || "-"
       }));
-    const pickNo = a.hiddenBomb?.horseNumber;
-    const bombH = horses.find(h => h.number == pickNo) || horses[0];
-    const raceRisk = riskText(a.hiddenBomb?.surpriseScore || 70);
-    const raceRiskCls = riskClass(a.hiddenBomb?.surpriseScore || 70);
-    const hasValue = bombH && bombH.odds > 8;
-    const sc = a.hiddenBomb?.surpriseScore || 70;
-    const khellNote = sc >= 85
-      ? "Son performansı yükselişte. Oranına göre güçlü görünüyor."
-      : sc >= 70
-      ? "Oranına göre değerli görünüyor. Dikkatle takip edilmeli."
-      : "Favori baskısı altında. Risk yönetimi önemli.";
+
+    const pickNo  = a.hiddenBomb?.horseNumber;
+    const bombH   = horses.find(h => h.number == pickNo) || horses[0];
+    const sc      = a.hiddenBomb?.surpriseScore || 70;
+    const raceRiskCls = riskClass(sc);
+    const raceRisk    = riskText(sc);
+
     q("modalContent").innerHTML = `
       <h2 class="coupon-title">${a.raceName}</h2>
+
+      <!-- ÖZET BANT -->
       <div class="modal-section">
         <div class="modal-section-title">KHELL ANALİZ ÖZETİ</div>
-        <div class="modal-metrics">
-          <div class="modal-metric gold"><small>SÜRPRİZ</small><b>${a.hiddenBomb?.surpriseScore || 70}</b></div>
-          <div class="modal-metric ${raceRiskCls === 'risk-low' ? 'green' : raceRiskCls === 'risk-mid' ? 'orange' : 'red'}"><small>RİSK</small><b>${raceRisk}</b></div>
-          <div class="modal-metric"><small>AT SAYISI</small><b>${horses.length}</b></div>
-          <div class="modal-metric gold"><small>ORAN</small><b>${bombH?.odds || "-"}</b></div>
-        </div>
-        <div class="khell-note">
-          <b>KHELL notu:</b> ${khellNote}
-        </div>
-        ${hasValue ? `<div class="value-alert">⚡ Değerli oran uyarısı — ${bombH.odds} oranı potansiyele göre yüksek görünüyor.</div>` : ""}
-      </div>
-      <div class="horse-table">
-        ${horses.map(h=>`
-          <div class="horse-row ${h.number == pickNo ? "pick" : ""}">
-            <div class="horse-num">${h.number}</div>
-            <div class="horse-name"><b>${h.name}</b><small>${h.jockey || "Jokey"} • Oran ${h.odds}</small></div>
-            <div class="metric"><small>FORM</small><b>${h.formScore}</b></div>
-            <div class="metric"><small>SÜRPRİZ</small><b>${h.surpriseScore}</b></div>
-            <div class="metric"><small>RİSK</small><b>${h.riskScore}</b></div>
-            <div class="metric"><small>AGF</small><b>${h.agf || "-"}</b></div>
+        <div class="detail-pick-banner">
+          <div class="detail-pick-label">KHELL Seçimi</div>
+          <div class="detail-pick-name">${bombH?.name || "-"}</div>
+          <div class="detail-pick-meta">
+            <span class="coupon-badge odds">Oran ${bombH?.odds || "-"}</span>
+            <span class="coupon-badge trust">Sürpriz ${sc}</span>
+            <span class="coupon-badge risk">${raceRisk} RİSK</span>
+            <span class="coupon-badge">🐴 ${horses.length} At</span>
           </div>
-        `).join("")}
+        </div>
+      </div>
+
+      <!-- AT LİSTESİ — ACCORDION -->
+      <div class="modal-section-title" style="margin:16px 0 8px;">AT ANALİZLERİ <small style="font-size:9px;color:var(--muted)">— karta tıkla</small></div>
+      <div class="accordion-list" id="accordionList">
+        ${horses.map((h, hi) => {
+          const isPick  = h.number == pickNo;
+          const tag     = khellHorseTag(h, isPick);
+          const comment = khellHorseComment(h, isPick);
+          const strList = horseStrengths(h);
+          const wkList  = horseWeaknesses(h);
+          const rsCls   = h.riskScore >= 65 ? "red" : h.riskScore >= 45 ? "orange" : "green";
+          return `
+          <div class="acc-item ${isPick ? "acc-pick" : ""}" data-acc="${hi}">
+            <div class="acc-header" onclick="khellToggleAcc(${hi})">
+              <div class="acc-num">${h.number}</div>
+              <div class="acc-info">
+                <b>${h.name}</b>
+                <small>${h.jockey || "Jokey"} • Oran ${h.odds} • AGF ${h.agf || "-"}</small>
+              </div>
+              <span class="acc-tag ${tag.cls}">${tag.label}</span>
+              <span class="acc-arrow" id="acc-arrow-${hi}">›</span>
+            </div>
+            <div class="acc-body" id="acc-body-${hi}" style="display:none;">
+              <div class="acc-metrics">
+                <div class="acc-metric"><small>FORM</small><b>${h.formScore}</b></div>
+                <div class="acc-metric"><small>SÜRPRİZ</small><b class="gold">${h.surpriseScore}</b></div>
+                <div class="acc-metric"><small>RİSK</small><b class="${rsCls}">${h.riskScore}</b></div>
+                <div class="acc-metric"><small>ORAN</small><b>${h.odds}</b></div>
+                <div class="acc-metric"><small>AGF</small><b>${h.agf || "-"}</b></div>
+              </div>
+              ${strList.length ? `
+              <div class="acc-section-label">✅ Güçlü Taraflar</div>
+              <ul class="acc-list acc-list-green">${strList.map(s=>`<li>${s}</li>`).join("")}</ul>` : ""}
+              ${wkList.length ? `
+              <div class="acc-section-label">⚠️ Zayıf Taraflar</div>
+              <ul class="acc-list acc-list-orange">${wkList.map(w=>`<li>${w}</li>`).join("")}</ul>` : ""}
+              <div class="khell-note" style="margin-top:10px;">
+                <b>KHELL:</b> ${comment}
+              </div>
+            </div>
+          </div>`;
+        }).join("")}
       </div>
     `;
     modalOpen();
   }
+
+  // Accordion toggle — modal içinde global erişim gerekiyor
+  window.khellToggleAcc = function(hi){
+    const body  = document.getElementById("acc-body-"  + hi);
+    const arrow = document.getElementById("acc-arrow-" + hi);
+    if(!body) return;
+    const open = body.style.display !== "none";
+    // Tüm açıkları kapat
+    document.querySelectorAll(".acc-body").forEach(b => b.style.display = "none");
+    document.querySelectorAll(".acc-arrow").forEach(a => { a.textContent = "›"; a.classList.remove("open"); });
+    if(!open){
+      body.style.display  = "block";
+      arrow.textContent   = "⌄";
+      arrow.classList.add("open");
+    }
+  };
 
   function modalOpen(){
     q("detailModal").classList.add("show");
