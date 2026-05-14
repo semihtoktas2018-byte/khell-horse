@@ -134,7 +134,7 @@
     if (!raw || typeof raw !== 'object') return null;
 
     var distance = safeNum(raw.distance || raw.mesafe, 1400);
-    var surface  = (normalizeSurface(raw.surface || raw.pist)).toUpperCase();
+    var surface  = normalizeSurface(raw.surface || raw.pist);
 
     var horses = safeArr(raw.horses || raw.atlar || raw.participants)
       .map(function (h) { return parseHorse(h, distance); })
