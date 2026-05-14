@@ -232,6 +232,17 @@
     `;
   }
 
+  // ── Form rozeti renderer ─────────────────────────────
+  function formDots(lastRuns){
+    if(!Array.isArray(lastRuns) || lastRuns.length === 0)
+      return '<span class="form-empty">form yok</span>';
+    return lastRuns.slice(0,6).map(pos => {
+      const p = parseInt(pos);
+      const cls = p === 1 ? "fd-1" : p === 2 ? "fd-2" : p === 3 ? "fd-3" : p <= 4 ? "fd-4" : "fd-5";
+      return `<span class="form-dot ${cls}">${p}</span>`;
+    }).join("");
+  }
+
   // ── KHELL at yorumu üretici ──────────────────────────
   function khellHorseComment(h, isPick){
     const sc  = h.surpriseScore || 70;
@@ -255,12 +266,13 @@
     const sc  = h.surpriseScore || 70;
     const rs  = h.riskScore     || 35;
     const odd = parseFloat(h.odds) || 5;
-    if(h.isFavorite && rs >= 60) return {label:"Riskli Favori",   cls:"tag-risk"};
-    if(sc >= 82 && odd >= 8)     return {label:"Değerli Oran Adayı", cls:"tag-value"};
-    if(sc >= 82)                 return {label:"Sürpriz Potansiyeli", cls:"tag-surprise"};
-    if(isPick)                   return {label:"Tabela Adayı",     cls:"tag-tabela"};
-    if(rs >= 65)                 return {label:"Riskli",           cls:"tag-risk"};
-    return                              {label:"İzlemeye Değer",   cls:"tag-watch"};
+    if(!h.jockey && !h.odds)          return {label:"Veri Sınırlı",       cls:"tag-watch"};
+    if(h.isFavorite && rs >= 60)      return {label:"Riskli Favori",      cls:"tag-risk"};
+    if(sc >= 82 && odd >= 8)          return {label:"Değerli Oran Adayı", cls:"tag-value"};
+    if(sc >= 82)                      return {label:"Sürpriz Potansiyeli",cls:"tag-surprise"};
+    if(isPick)                        return {label:"Tabela Adayı",       cls:"tag-tabela"};
+    if(rs >= 65)                      return {label:"Riskli",             cls:"tag-risk"};
+    return                                   {label:"İzlemeye Değer",     cls:"tag-watch"};
   }
 
   function horseStrengths(h){
@@ -268,12 +280,14 @@
     const dist = parseFloat(h.distance) || 1400;
     const minD = parseFloat(h.preferredDistanceMin) || dist - 300;
     const maxD = parseFloat(h.preferredDistanceMax) || dist + 300;
-    if(dist >= minD && dist <= maxD)                       list.push("Mesafe uyumu iyi");
-    if((h.surface||"") === (h.preferredSurface||""))       list.push("Zemin tercihi uygun");
-    if(parseFloat(h.agf) <= 6 && (h.surpriseScore||70)>=75) list.push("AGF düşük, skor yüksek");
-    if(parseFloat(h.odds) >= 8 && (h.surpriseScore||70)>=75) list.push("Oran değerli bölgede");
-    if((h.jockeyWinRate||0) >= 18)                         list.push("Jokey kazanma oranı yüksek");
-    if((h.trainerWinRate||0) >= 15)                        list.push("Antrenör kazanma oranı iyi");
+    if(dist >= minD && dist <= maxD)                         list.push("Mesafe uyumu iyi");
+    if((h.surface||"") === (h.preferredSurface||""))         list.push("Zemin tercihi uygun");
+    if(parseFloat(h.agf) <= 6 && (h.surpriseScore||70)>=75) list.push("AGF düşük, sürpriz skoru yüksek");
+    if(parseFloat(h.odds) >= 8 && (h.surpriseScore||70)>=75)list.push("Oran değerli bölgede");
+    if((h.jockeyWinRate||0) >= 18)                           list.push(`Jokey kazanma oranı güçlü (%${h.jockeyWinRate})`);
+    if((h.trainerWinRate||0) >= 15)                          list.push(`Antrenör kazanma oranı iyi (%${h.trainerWinRate})`);
+    const runs = h.lastRuns || [];
+    if(runs.length >= 3 && runs[0] < runs[1] && runs[1] < runs[2]) list.push("Son 3 koşuda form yükselişi");
     return list;
   }
 
@@ -282,13 +296,13 @@
     const dist = parseFloat(h.distance) || 1400;
     const minD = parseFloat(h.preferredDistanceMin) || dist - 300;
     const maxD = parseFloat(h.preferredDistanceMax) || dist + 300;
-    if(dist < minD || dist > maxD)                         list.push("Mesafe tercihi dışında");
-    if((h.surface||"") !== (h.preferredSurface||""))       list.push("Zemin uyumsuzluğu var");
-    if((h.formScore||70) <= 45)                            list.push("Form verisi zayıf");
-    if((h.jockeyWinRate||0) <= 10)                         list.push("Jokey etkisi düşük");
-    if((h.trainerWinRate||0) <= 8)                         list.push("Antrenör etkisi düşük");
-    if((h.riskScore||35) >= 65)                            list.push("Risk skoru yüksek");
-    if(!h.jockey || !h.odds)                               list.push("Eksik veri alanı mevcut");
+    if(dist < minD || dist > maxD)           list.push("Mesafe tercihi dışında koşuyor");
+    if((h.surface||"") !== (h.preferredSurface||"")) list.push("Zemin uyumsuzluğu var");
+    if((h.formScore||70) <= 45)              list.push("Form verisi zayıf");
+    if((h.jockeyWinRate||0) <= 10)           list.push(`Jokey kazanma oranı düşük (%${h.jockeyWinRate||0})`);
+    if((h.trainerWinRate||0) <= 8)           list.push(`Antrenör kazanma oranı düşük (%${h.trainerWinRate||0})`);
+    if((h.riskScore||35) >= 65)              list.push("Risk skoru yüksek");
+    if(!h.jockey || !h.odds)                 list.push("Eksik veri alanı mevcut");
     return list;
   }
 
@@ -299,76 +313,131 @@
       .filter(isValidHorse)
       .map(h => ({
         ...h,
-        number:       resolveHorseNum(h),
-        name:         resolveHorseName(h),
-        formScore:    h.formScore    || 70,
-        surpriseScore:h.surpriseScore|| 70,
-        riskScore:    h.riskScore    || 35,
-        odds:         h.odds         || "-"
+        number:        resolveHorseNum(h),
+        name:          resolveHorseName(h),
+        formScore:     h.formScore     || 70,
+        surpriseScore: h.surpriseScore || 70,
+        riskScore:     h.riskScore     || 35,
+        odds:          h.odds          || "-"
       }));
 
-    const pickNo  = a.hiddenBomb?.horseNumber;
-    const bombH   = horses.find(h => h.number == pickNo) || horses[0];
-    const sc      = a.hiddenBomb?.surpriseScore || 70;
-    const raceRiskCls = riskClass(sc);
+    const pickNo      = a.hiddenBomb?.horseNumber;
+    const bombH       = horses.find(h => h.number == pickNo) || horses[0];
+    const sc          = a.hiddenBomb?.surpriseScore || 70;
     const raceRisk    = riskText(sc);
+    const r           = a.race || {};
 
     q("modalContent").innerHTML = `
-      <h2 class="coupon-title">${a.raceName}</h2>
-
-      <!-- ÖZET BANT -->
-      <div class="modal-section">
-        <div class="modal-section-title">KHELL ANALİZ ÖZETİ</div>
-        <div class="detail-pick-banner">
-          <div class="detail-pick-label">KHELL Seçimi</div>
-          <div class="detail-pick-name">${bombH?.name || "-"}</div>
-          <div class="detail-pick-meta">
-            <span class="coupon-badge odds">Oran ${bombH?.odds || "-"}</span>
-            <span class="coupon-badge trust">Sürpriz ${sc}</span>
-            <span class="coupon-badge risk">${raceRisk} RİSK</span>
-            <span class="coupon-badge">🐴 ${horses.length} At</span>
-          </div>
+      <!-- KOŞU BAŞLIK -->
+      <div class="modal-race-header">
+        <div class="modal-race-title">
+          <span class="modal-race-name">${a.raceName}</span>
+          <span class="modal-race-time">${r.time || "--:--"}</span>
+        </div>
+        <div class="modal-race-chips">
+          <span class="chip">${r.track || "Veliefendi"}</span>
+          <span class="chip">${r.surface || "çim"}</span>
+          <span class="chip">${r.distance || 1400}m</span>
+          <span class="chip">${r.type || "Handikap"}</span>
         </div>
       </div>
 
-      <!-- AT LİSTESİ — ACCORDION -->
-      <div class="modal-section-title" style="margin:16px 0 8px;">AT ANALİZLERİ <small style="font-size:9px;color:var(--muted)">— karta tıkla</small></div>
-      <div class="accordion-list" id="accordionList">
+      <!-- KHELL SEÇİMİ BANNER -->
+      <div class="detail-pick-banner">
+        <div class="detail-pick-label">⚡ KHELL Seçimi</div>
+        <div class="detail-pick-name">${bombH?.name || "-"}</div>
+        <div class="detail-pick-meta">
+          <span class="coupon-badge odds">Oran ${bombH?.odds || "-"}</span>
+          <span class="coupon-badge trust">Sürpriz ${sc}</span>
+          <span class="coupon-badge risk">${raceRisk} RİSK</span>
+          <span class="coupon-badge">🐴 ${horses.length} At</span>
+        </div>
+      </div>
+
+      <!-- AT LİSTESİ -->
+      <div class="acc-list-header">AT ANALİZLERİ <span>— karta tıkla, detay aç</span></div>
+      <div id="accordionList">
         ${horses.map((h, hi) => {
-          const isPick  = h.number == pickNo;
-          const tag     = khellHorseTag(h, isPick);
-          const comment = khellHorseComment(h, isPick);
-          const strList = horseStrengths(h);
-          const wkList  = horseWeaknesses(h);
-          const rsCls   = h.riskScore >= 65 ? "red" : h.riskScore >= 45 ? "orange" : "green";
+          const isPick   = h.number == pickNo;
+          const tag      = khellHorseTag(h, isPick);
+          const comment  = khellHorseComment(h, isPick);
+          const strList  = horseStrengths(h);
+          const wkList   = horseWeaknesses(h);
+          const rsCls    = h.riskScore >= 65 ? "red" : h.riskScore >= 45 ? "orange" : "green";
+          const scCls    = h.surpriseScore >= 80 ? "gold" : h.surpriseScore >= 65 ? "green" : "";
+          const dots     = formDots(h.lastRuns);
           return `
-          <div class="acc-item ${isPick ? "acc-pick" : ""}" data-acc="${hi}">
+          <div class="acc-item ${isPick ? "acc-pick" : ""}">
+
+            <!-- AT KARTI HEADER — tıklanabilir -->
             <div class="acc-header" onclick="khellToggleAcc(${hi})">
-              <div class="acc-num">${h.number}</div>
+
+              <!-- Sol: numara -->
+              <div class="acc-num ${isPick ? "acc-num-pick" : ""}">${h.number}</div>
+
+              <!-- Orta: at bilgileri -->
               <div class="acc-info">
-                <b>${h.name}</b>
-                <small>${h.jockey || "Jokey"} • Oran ${h.odds} • AGF ${h.agf || "-"}</small>
+                <div class="acc-name-row">
+                  <b>${h.name}</b>
+                  ${isPick ? '<span class="pick-star">★</span>' : ""}
+                </div>
+                <div class="acc-sub-row">
+                  <span class="acc-sub-item">👤 ${h.jockey || "-"}</span>
+                  <span class="acc-sub-item">⚖️ ${h.weight || "-"}kg</span>
+                  <span class="acc-sub-item">📅 ${h.age || "-"}y</span>
+                </div>
+                <!-- Form rozetleri -->
+                <div class="acc-form-row">${dots}</div>
               </div>
-              <span class="acc-tag ${tag.cls}">${tag.label}</span>
-              <span class="acc-arrow" id="acc-arrow-${hi}">›</span>
+
+              <!-- Sağ: skorlar + ok -->
+              <div class="acc-right">
+                <div class="acc-odds-block">
+                  <span class="acc-odds-val">${h.odds}</span>
+                  <span class="acc-odds-lbl">ORAN</span>
+                </div>
+                <div class="acc-score-block">
+                  <span class="acc-score-val ${scCls}">${h.surpriseScore}</span>
+                  <span class="acc-score-lbl">SÜRPRİZ</span>
+                </div>
+                <span class="acc-arrow" id="acc-arrow-${hi}">›</span>
+              </div>
+
             </div>
+
+            <!-- ETİKET BANDI -->
+            <div class="acc-tag-band">
+              <span class="acc-tag ${tag.cls}">${tag.label}</span>
+              <span class="acc-tag-agf">AGF ${h.agf || "-"}</span>
+            </div>
+
+            <!-- ACCORDION DETAY -->
             <div class="acc-body" id="acc-body-${hi}" style="display:none;">
+
+              <!-- Metrik kutuları -->
               <div class="acc-metrics">
                 <div class="acc-metric"><small>FORM</small><b>${h.formScore}</b></div>
-                <div class="acc-metric"><small>SÜRPRİZ</small><b class="gold">${h.surpriseScore}</b></div>
+                <div class="acc-metric"><small>SÜRPRİZ</small><b class="${scCls}">${h.surpriseScore}</b></div>
                 <div class="acc-metric"><small>RİSK</small><b class="${rsCls}">${h.riskScore}</b></div>
-                <div class="acc-metric"><small>ORAN</small><b>${h.odds}</b></div>
-                <div class="acc-metric"><small>AGF</small><b>${h.agf || "-"}</b></div>
+                <div class="acc-metric"><small>JOKEY %</small><b>${h.jockeyWinRate || "-"}</b></div>
+                <div class="acc-metric"><small>ANTRENÖR %</small><b>${h.trainerWinRate || "-"}</b></div>
               </div>
+
+              <!-- Güçlü taraflar -->
               ${strList.length ? `
               <div class="acc-section-label">✅ Güçlü Taraflar</div>
               <ul class="acc-list acc-list-green">${strList.map(s=>`<li>${s}</li>`).join("")}</ul>` : ""}
+
+              <!-- Dikkat edilmesi gerekenler -->
               ${wkList.length ? `
-              <div class="acc-section-label">⚠️ Zayıf Taraflar</div>
+              <div class="acc-section-label">⚠️ Dikkat Edilmesi Gerekenler</div>
               <ul class="acc-list acc-list-orange">${wkList.map(w=>`<li>${w}</li>`).join("")}</ul>` : ""}
+
+              <!-- KHELL yorumu -->
               <div class="khell-note" style="margin-top:10px;">
                 <b>KHELL:</b> ${comment}
               </div>
+
             </div>
           </div>`;
         }).join("")}
@@ -377,19 +446,17 @@
     modalOpen();
   }
 
-  // Accordion toggle — modal içinde global erişim gerekiyor
+  // Accordion toggle — global, modal içinden erişilebilir
   window.khellToggleAcc = function(hi){
     const body  = document.getElementById("acc-body-"  + hi);
     const arrow = document.getElementById("acc-arrow-" + hi);
     if(!body) return;
-    const open = body.style.display !== "none";
-    // Tüm açıkları kapat
-    document.querySelectorAll(".acc-body").forEach(b => b.style.display = "none");
-    document.querySelectorAll(".acc-arrow").forEach(a => { a.textContent = "›"; a.classList.remove("open"); });
-    if(!open){
-      body.style.display  = "block";
-      arrow.textContent   = "⌄";
-      arrow.classList.add("open");
+    const isOpen = body.style.display !== "none";
+    document.querySelectorAll(".acc-body").forEach(b  => b.style.display = "none");
+    document.querySelectorAll(".acc-arrow").forEach(ar => { ar.textContent = "›"; ar.classList.remove("open"); });
+    if(!isOpen){
+      body.style.display = "block";
+      if(arrow){ arrow.textContent = "⌄"; arrow.classList.add("open"); }
     }
   };
 
