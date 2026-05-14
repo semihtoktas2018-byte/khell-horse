@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KHELL Bülten Builder</title>
+<style>
+  :root {
+    --bg:        #0a0c10;
+    --bg2:       #111520;
+    --bg3:       #181d28;
+    --border:    #232b3a;
+    --border2:   #2e3a50;
+    --accent:    #e8a020;
+    --accent2:   #f0b840;
+    --green:     #2ecc8a;
+    --red:       #e05050;
+    --blue:      #4a9eff;
+    --text:      #d8dfe8;
+    --text2:     #8a95a8;
+    --text3:     #545f72;
+    --radius:    6px;
+    --radius2:   10px;
+    --font:      'Courier New', monospace;
+    --font2:     Georgia, 'Times New Roman', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--accent);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo {
+    font-family: var(--font2);
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .header-logo span { color: var(--text2); font-size: 13px; font-family: var(--font); margin-left: 8px; letter-spacing: 0; }
+  .header-badge {
+    margin-left: auto;
+    background: #1a2010;
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  /* LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* SECTION CARD */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius2);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  .card-body { padding: 16px; }
+
+  /* GRID */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+  @media(max-width:700px) {
+    .grid2, .grid3, .grid4 { grid-template-columns: 1fr 1fr; }
+  }
+  @media(max-width:480px) {
+    .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+  }
+
+  /* FORM ELEMENTS */
+  label { display: block; font-size: 10px; color: var(--text2); letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  input[type="checkbox"] { width: auto; transform: scale(1.3); accent-color: var(--accent); }
+  select option { background: var(--bg2); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: bold;
+  }
+  .btn-accent:hover { background: var(--accent2); border-color: var(--accent2); color: #000; }
+  .btn-green { border-color: var(--green); color: var(--green); }
+  .btn-green:hover { background: #0d2a1a; }
+  .btn-red { border-color: var(--red); color: var(--red); }
+  .btn-red:hover { background: #2a0d0d; }
+  .btn-blue { border-color: var(--blue); color: var(--blue); }
+  .btn-blue:hover { background: #0d1a2a; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  /* RACE BLOCK */
+  .race-block {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius2);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .race-block-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .race-num {
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .race-block-body { padding: 14px; }
+
+  /* HORSE TABLE */
+  .horse-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .horse-row {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .horse-row-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .horse-num-badge {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    min-width: 32px;
+    text-align: center;
+  }
+  .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .checkbox-row label { margin: 0; text-transform: none; font-size: 12px; color: var(--text2); }
+
+  /* JSON OUTPUT */
+  .json-output {
+    background: var(--bg);
+    border: 1px solid var(--green);
+    border-radius: var(--radius2);
+    padding: 16px;
+    font-family: var(--font);
+    font-size: 12px;
+    color: #7ec97e;
+    white-space: pre;
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+
+  /* ACTION BAR */
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  /* STATUS */
+  .status-bar {
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+    display: none;
+  }
+  .status-bar.ok { display: block; background: #0d2a1a; border: 1px solid var(--green); color: var(--green); }
+  .status-bar.err { display: block; background: #2a0d0d; border: 1px solid var(--red); color: var(--red); }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    margin-top: 12px;
+  }
+
+  /* COPY FLASH */
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .flashing { animation: flash 0.4s; }
+
+  .counter-badge {
+    font-size: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">KHELL<span>/ Bülten Builder</span></div>
+  <div class="header-badge">ADMİN ARACI</div>
+</div>
+
+<div class="container">
+
+  <!-- META -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📅 Yarış Günü</div>
+    </div>
+    <div class="card-body">
+      <div class="grid4">
+        <div>
+          <label>Tarih</label>
+          <input type="date" id="meta-date">
+        </div>
+        <div>
+          <label>Pist</label>
+          <input type="text" id="meta-track" placeholder="İstanbul Veliefendi">
+        </div>
+        <div>
+          <label>Güncelleme Saati</label>
+          <input type="time" id="meta-time">
+        </div>
+        <div>
+          <label>Kaynak Notu</label>
+          <input type="text" id="meta-note" placeholder="manuel / TJK / scraper">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACES -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🏇 Koşular</div>
+      <div class="spacer"></div>
+      <span class="counter-badge" id="race-counter">0 koşu</span>
+    </div>
+    <div class="card-body">
+      <div id="race-list"></div>
+      <button class="btn btn-accent" onclick="addRace()">+ Koşu Ekle</button>
+    </div>
+  </div>
+
+  <!-- JSON OUTPUT -->
+  <div class="card" id="output-card" style="display:none">
+    <div class="card-header">
+      <div class="card-title">📄 Üretilen JSON</div>
+    </div>
+    <div class="card-body">
+      <div class="json-output" id="json-output"></div>
+      <div id="status-bar" class="status-bar"></div>
+      <div class="action-bar">
+        <button class="btn btn-accent" onclick="generateJSON()">⚡ Yenile</button>
+        <button class="btn btn-green" onclick="downloadJSON()">⬇ latest.json İndir</button>
+        <button class="btn btn-blue" onclick="copyJSON()">📋 Panoya Kopyala</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENERATE -->
+  <div style="display:flex; gap:10px; margin-top:8px;">
+    <button class="btn btn-accent" style="font-size:14px; padding:12px 28px;" onclick="generateJSON()">⚡ JSON Üret</button>
+    <button class="btn" onclick="clearAll()">🗑 Temizle</button>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────
+var races = [];       // [{id, fields, horses:[{id, fields}]}]
+var raceIdCounter = 0;
+var horseIdCounter = 0;
+
+// ─── UTILS ───────────────────────────────────────────
+function uid() { return ++raceIdCounter; }
+function huid() { return ++horseIdCounter; }
+
+function safeNum(val, fallback) {
+  var n = parseFloat(val);
+  return isNaN(n) ? (fallback || 0) : n;
+}
+function safeStr(val, fallback) {
+  var s = String(val || '').trim();
+  return s || (fallback || '');
+}
+function parseLastRuns(val) {
+  var s = String(val || '').trim();
+  if (!s) return [];
+  return s.split(/[,\s]+/)
+    .map(function(v){ return parseInt(v, 10); })
+    .filter(function(n){ return !isNaN(n); });
+}
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+function nowTime() {
+  return new Date().toTimeString().slice(0,5);
+}
+
+// ─── RACE ────────────────────────────────────────────
+function addRace() {
+  var id = uid();
+  races.push({ id: id, horses: [] });
+  renderRaces();
+  // Scroll to new race
+  setTimeout(function(){
+    var el = document.getElementById('race-block-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+function removeRace(id) {
+  races = races.filter(function(r){ return r.id !== id; });
+  renderRaces();
+}
+
+function addHorse(raceId) {
+  var race = races.find(function(r){ return r.id === raceId; });
+  if (!race) return;
+  race.horses.push({ id: huid() });
+  renderRaces();
+}
+
+function removeHorse(raceId, horseId) {
+  var race = races.find(function(r){ return r.id === raceId; });
+  if (!race) return;
+  race.horses = race.horses.filter(function(h){ return h.id !== horseId; });
+  renderRaces();
+}
+
+// ─── RENDER ──────────────────────────────────────────
+function renderRaces() {
+  var container = document.getElementById('race-list');
+  document.getElementById('race-counter').textContent = races.length + ' koşu';
+
+  if (races.length === 0) {
+    container.innerHTML = '<p style="color:var(--text3);font-size:12px;margin-bottom:14px;">Henüz koşu eklenmedi.</p>';
+    return;
+  }
+
+  container.innerHTML = races.map(function(race, idx) {
+    return renderRaceBlock(race, idx);
+  }).join('');
+}
+
+function renderRaceBlock(race, idx) {
+  var rId = race.id;
+  var horses = race.horses || [];
+  return [
+    '<div class="race-block" id="race-block-' + rId + '">',
+      '<div class="race-block-header">',
+        '<span class="race-num">' + (idx+1) + '. KOŞU</span>',
+        '<span style="color:var(--text2);font-size:11px;">id:' + rId + '</span>',
+        '<div class="spacer"></div>',
+        '<button class="btn btn-sm btn-red" onclick="removeRace(' + rId + ')">✕ Sil</button>',
+      '</div>',
+      '<div class="race-block-body">',
+        '<!-- KOŞU ALANLARI -->',
+        '<div class="grid4">',
+          '<div><label>Koşu Adı</label><input type="text" id="r' + rId + '-name" placeholder="' + (idx+1) + '. Koşu" value="' + (idx+1) + '. Koşu"></div>',
+          '<div><label>Saat</label><input type="time" id="r' + rId + '-time" value="' + defaultTime(idx) + '"></div>',
+          '<div><label>Pist</label><input type="text" id="r' + rId + '-track" placeholder="İstanbul Veliefendi"></div>',
+          '<div><label>Mesafe (m)</label><input type="number" id="r' + rId + '-distance" placeholder="1400" min="800" max="3000"></div>',
+        '</div>',
+        '<div class="grid2" style="margin-top:10px;">',
+          '<div><label>Zemin</label><select id="r' + rId + '-surface"><option value="çim">Çim</option><option value="kum">Kum</option><option value="sentetik">Sentetik</option></select></div>',
+          '<div><label>Yarış Tipi</label><select id="r' + rId + '-type"><option>Maiden</option><option>Handikap</option><option>Grup 1</option><option>Grup 2</option><option>Grup 3</option><option>Listed</option><option>Serbest Ağırlık</option></select></div>',
+        '</div>',
+        '<hr class="divider">',
+        '<!-- ATLAR -->',
+        '<div class="section-label">Atlar <span class="counter-badge">' + horses.length + '</span></div>',
+        '<div class="horse-list" id="horse-list-' + rId + '">',
+          horses.map(function(h, hi){ return renderHorseRow(rId, h, hi); }).join(''),
+        '</div>',
+        '<button class="btn btn-sm btn-green" style="margin-top:8px;" onclick="addHorse(' + rId + ')">+ At Ekle</button>',
+      '</div>',
+    '</div>'
+  ].join('');
+}
+
+function renderHorseRow(rId, horse, hi) {
+  var hId = horse.id;
+  return [
+    '<div class="horse-row" id="horse-row-' + hId + '">',
+      '<div class="horse-row-header">',
+        '<span class="horse-num-badge">#' + (hi+1) + '</span>',
+        '<span style="color:var(--text3);font-size:11px;flex:1;">At ' + (hi+1) + '</span>',
+        '<button class="btn btn-sm btn-red" onclick="removeHorse(' + rId + ',' + hId + ')">✕</button>',
+      '</div>',
+      '<div class="grid3">',
+        '<div><label>No</label><input type="number" id="h' + hId + '-number" value="' + (hi+1) + '" min="1" max="30"></div>',
+        '<div><label>At Adı</label><input type="text" id="h' + hId + '-name" placeholder="AT ADI"></div>',
+        '<div><label>Jokey</label><input type="text" id="h' + hId + '-jockey" placeholder="A. Demir"></div>',
+      '</div>',
+      '<div class="grid4" style="margin-top:8px;">',
+        '<div><label>Kilo</label><input type="number" id="h' + hId + '-weight" placeholder="55" min="48" max="70" step="0.5"></div>',
+        '<div><label>Yaş</label><input type="number" id="h' + hId + '-age" placeholder="4" min="2" max="12"></div>',
+        '<div><label>Oran</label><input type="number" id="h' + hId + '-odds" placeholder="8.50" step="0.01"></div>',
+        '<div><label>AGF</label><input type="number" id="h' + hId + '-agf" placeholder="5.0" step="0.01"></div>',
+      '</div>',
+      '<div class="grid4" style="margin-top:8px;">',
+        '<div><label>Son Koşular</label><input type="text" id="h' + hId + '-lastRuns" placeholder="3,2,4,1,5"></div>',
+        '<div><label>Zemin</label><select id="h' + hId + '-surface"><option value="çim">Çim</option><option value="kum">Kum</option><option value="sentetik">Sentetik</option></select></div>',
+        '<div><label>Tercih Zemin</label><select id="h' + hId + '-prefSurface"><option value="çim">Çim</option><option value="kum">Kum</option><option value="sentetik">Sentetik</option></select></div>',
+        '<div style="display:flex;align-items:flex-end;padding-bottom:2px;"><div class="checkbox-row"><input type="checkbox" id="h' + hId + '-fav"><label for="h' + hId + '-fav">Favori</label></div></div>',
+      '</div>',
+      '<div class="grid4" style="margin-top:8px;">',
+        '<div><label>Min Mesafe</label><input type="number" id="h' + hId + '-distMin" placeholder="1200" step="100"></div>',
+        '<div><label>Max Mesafe</label><input type="number" id="h' + hId + '-distMax" placeholder="1600" step="100"></div>',
+        '<div><label>Jokey Kazanma %</label><input type="number" id="h' + hId + '-jockeyWin" placeholder="15" min="0" max="100"></div>',
+        '<div><label>Antrenör Kazanma %</label><input type="number" id="h' + hId + '-trainerWin" placeholder="12" min="0" max="100"></div>',
+      '</div>',
+    '</div>'
+  ].join('');
+}
+
+function defaultTime(idx) {
+  var times = ['13:00','13:45','14:30','15:15','16:00','16:45','17:30','18:15'];
+  return times[idx] || '19:00';
+}
+
+// ─── COLLECT FORM DATA ───────────────────────────────
+function collectRaceData(race, idx) {
+  var rId = race.id;
+  function val(field) {
+    var el = document.getElementById('r' + rId + '-' + field);
+    return el ? el.value : '';
+  }
+  var distance = safeNum(val('distance'), 1400);
+  var horses = (race.horses || []).map(function(h, hi){ return collectHorseData(h, distance); }).filter(Boolean);
+  return {
+    raceName: safeStr(val('name'), (idx+1) + '. Koşu'),
+    time:     safeStr(val('time'), defaultTime(idx)),
+    track:    safeStr(val('track'), document.getElementById('meta-track').value || 'İstanbul Veliefendi'),
+    surface:  val('surface') || 'çim',
+    distance: distance,
+    type:     val('type') || 'Handikap',
+    horses:   horses
+  };
+}
+
+function collectHorseData(horse, raceDistance) {
+  var hId = horse.id;
+  function val(field) {
+    var el = document.getElementById('h' + hId + '-' + field);
+    return el ? el.value : '';
+  }
+  function checked(field) {
+    var el = document.getElementById('h' + hId + '-' + field);
+    return el ? el.checked : false;
+  }
+  var distance = raceDistance || 1400;
+  var distMin = safeNum(val('distMin'), distance - 200);
+  var distMax = safeNum(val('distMax'), distance + 200);
+  return {
+    number:              safeNum(val('number'), 0),
+    name:                safeStr(val('name'), 'Bilinmeyen At'),
+    jockey:              safeStr(val('jockey'), 'Bilinmiyor'),
+    weight:              safeNum(val('weight'), 55),
+    age:                 safeNum(val('age'), 4),
+    lastRuns:            parseLastRuns(val('lastRuns')),
+    surface:             val('surface') || 'çim',
+    preferredSurface:    val('prefSurface') || 'çim',
+    distance:            distance,
+    preferredDistanceMin: distMin,
+    preferredDistanceMax: distMax,
+    odds:                safeNum(val('odds'), 10),
+    agf:                 safeNum(val('agf'), 5),
+    isFavorite:          checked('fav'),
+    jockeyWinRate:       safeNum(val('jockeyWin'), 10),
+    trainerWinRate:      safeNum(val('trainerWin'), 10)
+  };
+}
+
+// ─── GENERATE JSON ────────────────────────────────────
+function generateJSON() {
+  var dateEl   = document.getElementById('meta-date');
+  var trackEl  = document.getElementById('meta-track');
+  var timeEl   = document.getElementById('meta-time');
+  var noteEl   = document.getElementById('meta-note');
+
+  var dateVal  = dateEl.value  || today();
+  var trackVal = safeStr(trackEl.value, 'İstanbul Veliefendi');
+  var timeVal  = timeEl.value  || nowTime();
+  var noteVal  = safeStr(noteEl.value, 'manuel');
+
+  var raceData = races.map(function(race, idx){ return collectRaceData(race, idx); });
+
+  var output = {
+    _meta: {
+      date:    dateVal,
+      track:   trackVal,
+      updated: dateVal + 'T' + timeVal + ':00',
+      source:  noteVal,
+      note:    'Günlük yarış verisi.'
+    },
+    races: raceData
+  };
+
+  var json = JSON.stringify(output, null, 2);
+
+  var outputCard = document.getElementById('output-card');
+  var outputEl   = document.getElementById('json-output');
+  var statusEl   = document.getElementById('status-bar');
+
+  outputCard.style.display = 'block';
+  outputEl.textContent = json;
+  outputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Validation
+  var errors = [];
+  if (!dateVal) errors.push('Tarih eksik');
+  if (races.length === 0) errors.push('Hiç koşu eklenmemiş');
+  raceData.forEach(function(r, i){
+    if (r.horses.length === 0) errors.push((i+1) + '. koşuda at yok');
+  });
+
+  if (errors.length > 0) {
+    statusEl.className = 'status-bar err';
+    statusEl.textContent = '⚠ ' + errors.join(' | ');
+  } else {
+    statusEl.className = 'status-bar ok';
+    statusEl.textContent = '✓ JSON geçerli — ' + raceData.length + ' koşu, ' +
+      raceData.reduce(function(s,r){ return s + r.horses.length; }, 0) + ' at';
+  }
+
+  return json;
+}
+
+// ─── DOWNLOAD ────────────────────────────────────────
+function downloadJSON() {
+  var json = generateJSON();
+  var blob = new Blob([json], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'latest.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─── COPY ────────────────────────────────────────────
+function copyJSON() {
+  var el = document.getElementById('json-output');
+  if (!el.textContent) { generateJSON(); }
+  navigator.clipboard.writeText(el.textContent).then(function(){
+    el.classList.add('flashing');
+    setTimeout(function(){ el.classList.remove('flashing'); }, 400);
+    var statusEl = document.getElementById('status-bar');
+    var prev = statusEl.textContent;
+    var prevClass = statusEl.className;
+    statusEl.className = 'status-bar ok';
+    statusEl.textContent = '✓ Panoya kopyalandı!';
+    setTimeout(function(){
+      statusEl.className = prevClass;
+      statusEl.textContent = prev;
+    }, 2000);
+  }).catch(function(){
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = el.textContent;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+// ─── CLEAR ───────────────────────────────────────────
+function clearAll() {
+  if (!confirm('Tüm veriler silinecek. Emin misin?')) return;
+  races = [];
+  raceIdCounter = 0;
+  horseIdCounter = 0;
+  renderRaces();
+  document.getElementById('output-card').style.display = 'none';
+  document.getElementById('meta-date').value = today();
+  document.getElementById('meta-track').value = '';
+  document.getElementById('meta-time').value = '';
+  document.getElementById('meta-note').value = '';
+}
+
+// ─── INIT ────────────────────────────────────────────
+(function init(){
+  document.getElementById('meta-date').value = today();
+  document.getElementById('meta-time').value = nowTime();
+  renderRaces();
+})();
+</script>
+</body>
+</html>
