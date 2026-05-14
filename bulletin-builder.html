@@ -274,6 +274,45 @@
     border-radius: 3px;
   }
   .spacer { flex: 1; }
+
+  /* CSV IMPORT */
+  .csv-drop-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius2);
+    padding: 20px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .csv-drop-zone:hover, .csv-drop-zone.drag-over {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #1a1408;
+  }
+  .csv-drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .csv-textarea {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    font-size: 11px;
+    line-height: 1.5;
+    margin-top: 10px;
+  }
+  .csv-status {
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    margin-top: 8px;
+    display: none;
+  }
+  .csv-status.ok  { display: block; background: #0d2a1a; border: 1px solid var(--green); color: var(--green); }
+  .csv-status.err { display: block; background: #2a0d0d; border: 1px solid var(--red);   color: var(--red); }
+  .csv-status.inf { display: block; background: #0d1a2a; border: 1px solid var(--blue);  color: var(--blue); }
 </style>
 </head>
 <body>
@@ -309,6 +348,32 @@
           <input type="text" id="meta-note" placeholder="manuel / TJK / scraper">
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- CSV IMPORT -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📥 CSV İçe Aktar</div>
+      <div class="spacer"></div>
+      <button class="btn btn-sm" onclick="downloadSampleCSV()">⬇ Örnek CSV</button>
+      <button class="btn btn-sm btn-blue" onclick="copyCSVTemplate()">📋 Şablonu Kopyala</button>
+    </div>
+    <div class="card-body">
+      <div class="csv-drop-zone" id="csv-drop-zone">
+        <input type="file" id="csv-file-input" accept=".csv,.txt" onchange="handleCSVFile(event)">
+        <div>📂 CSV dosyası sürükle bırak veya tıkla seç</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">raceName, time, track, surface, distance, type, number, name, jockey, weight, age, lastRuns, odds, agf, isFavorite, jockeyWinRate, trainerWinRate</div>
+      </div>
+      <div style="margin-top:10px;">
+        <label>veya CSV metnini yapıştır</label>
+        <textarea class="csv-textarea" id="csv-paste-area" placeholder="raceName,time,track,...&#10;1. Koşu,13:00,İstanbul Veliefendi,çim,1400,Maiden,1,KARABAŞ,A. Demir,55,4,&quot;3,2,4,1,5&quot;,12.4,5,false,15,12"></textarea>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-accent" onclick="loadCSV()">⚡ CSV'den Yükle</button>
+        <button class="btn" onclick="document.getElementById('csv-paste-area').value='';document.getElementById('csv-status').className='csv-status';">✕ Temizle</button>
+      </div>
+      <div class="csv-status" id="csv-status"></div>
     </div>
   </div>
 
@@ -665,6 +730,259 @@ function clearAll() {
   document.getElementById('meta-time').value = '';
   document.getElementById('meta-note').value = '';
 }
+
+// ─── CSV IMPORT ──────────────────────────────────────
+
+var CSV_COLS = ['raceName','time','track','surface','distance','type',
+                'number','name','jockey','weight','age','lastRuns',
+                'odds','agf','isFavorite','jockeyWinRate','trainerWinRate'];
+
+var SAMPLE_CSV =
+'raceName,time,track,surface,distance,type,number,name,jockey,weight,age,lastRuns,odds,agf,isFavorite,jockeyWinRate,trainerWinRate\n' +
+'1. Koşu,13:00,İstanbul Veliefendi,çim,1400,Maiden,1,KARABAŞ,A. Demir,55,4,"3,2,4,1,5",12.4,5,false,15,12\n' +
+'1. Koşu,13:00,İstanbul Veliefendi,çim,1400,Maiden,2,RÜZGAR GÜLİ,M. Yıldırım,57,4,"1,2,1,3,2",2.3,38.5,true,23,18\n' +
+'2. Koşu,13:45,İstanbul Veliefendi,çim,1600,Handikap,1,ALTAY FIRTINASI,E. Kaya,56,5,"3,2,1,2,1",4.5,18.6,false,19,15\n' +
+'2. Koşu,13:45,İstanbul Veliefendi,çim,1600,Handikap,2,BOZKIR ŞAHINI,T. Polat,60,6,"1,1,2,1,4",1.95,44.2,true,25,20\n';
+
+// RFC 4180 uyumlu CSV parser — tırnaklı lastRuns alanını doğru okur
+function parseCSVLine(line) {
+  var result = [];
+  var cur = '';
+  var inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function normSurface(s) {
+  s = String(s || '').trim().toLowerCase();
+  if (s === 'cim' || s === 'çim' || s === 'grass' || s === 'turf') return 'çim';
+  if (s === 'kum' || s === 'sand' || s === 'dirt') return 'kum';
+  if (s === 'sentetik' || s === 'synthetic' || s === 'all-weather') return 'sentetik';
+  return s || 'çim';
+}
+
+function csvRowToRaceHorse(cols) {
+  // cols dizisini CSV_COLS sırasına göre eşleştir
+  var get = function(key) {
+    var idx = CSV_COLS.indexOf(key);
+    return (idx >= 0 && idx < cols.length) ? String(cols[idx]).trim() : '';
+  };
+  var race = {
+    raceName: get('raceName') || '1. Koşu',
+    time:     get('time')     || '13:00',
+    track:    get('track')    || 'İstanbul Veliefendi',
+    surface:  normSurface(get('surface')),
+    distance: safeNum(get('distance'), 1400),
+    type:     get('type')     || 'Handikap'
+  };
+  var dist = race.distance;
+  var horse = {
+    number:               safeNum(get('number'), 1),
+    name:                 get('name') || 'Bilinmeyen At',
+    jockey:               get('jockey') || 'Bilinmiyor',
+    weight:               safeNum(get('weight'), 55),
+    age:                  safeNum(get('age'), 4),
+    lastRuns:             parseLastRuns(get('lastRuns')),
+    surface:              normSurface(get('surface')),
+    preferredSurface:     normSurface(get('surface')),
+    distance:             dist,
+    preferredDistanceMin: dist - 200 > 0 ? dist - 200 : dist,
+    preferredDistanceMax: dist + 200,
+    odds:                 safeNum(get('odds'), 10),
+    agf:                  safeNum(get('agf'), 5),
+    isFavorite:           get('isFavorite').toLowerCase() === 'true',
+    jockeyWinRate:        safeNum(get('jockeyWinRate'), 10),
+    trainerWinRate:       safeNum(get('trainerWinRate'), 10)
+  };
+  return { race: race, horse: horse };
+}
+
+function csvTextToRaces(text) {
+  var lines = text.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+  if (lines.length === 0) return { races: [], errors: ['CSV boş'] };
+
+  // Header satırını atla
+  var startIdx = 0;
+  var firstLower = lines[0].toLowerCase();
+  if (firstLower.indexOf('racename') >= 0 || firstLower.indexOf('koşu') >= 0) {
+    startIdx = 1;
+  }
+
+  var raceMap = {}; // key: raceName+time → {raceData, horses[]}
+  var raceOrder = [];
+  var errors = [];
+
+  for (var i = startIdx; i < lines.length; i++) {
+    try {
+      var cols = parseCSVLine(lines[i]);
+      if (cols.length < 6) { errors.push((i+1) + '. satır: kolon eksik'); continue; }
+      var parsed = csvRowToRaceHorse(cols);
+      var key = parsed.race.raceName + '||' + parsed.race.time;
+      if (!raceMap[key]) {
+        raceMap[key] = { raceData: parsed.race, horses: [] };
+        raceOrder.push(key);
+      }
+      raceMap[key].horses.push(parsed.horse);
+    } catch(e) {
+      errors.push((i+1) + '. satır hata: ' + e.message);
+    }
+  }
+
+  var raceList = raceOrder.map(function(k){ return raceMap[k]; });
+  return { races: raceList, errors: errors };
+}
+
+function injectCSVRaces(parsed) {
+  // Her CSV koşusunu state'e ekle, at verilerini doğrudan horse objesine yaz
+  parsed.races.forEach(function(csvRace) {
+    var rId = uid();
+    var horses = csvRace.horses.map(function(h) {
+      var hId = huid();
+      return { id: hId, _csvData: h };
+    });
+    races.push({ id: rId, _csvRace: csvRace.raceData, horses: horses });
+  });
+  renderRaces();
+
+  // DOM render olduktan sonra alanları doldur
+  setTimeout(function(){
+    races.forEach(function(race) {
+      if (!race._csvRace) return;
+      var rId = race.id;
+      var rd = race._csvRace;
+      var setVal = function(field, val) {
+        var el = document.getElementById('r' + rId + '-' + field);
+        if (el) el.value = val;
+      };
+      setVal('name',     rd.raceName);
+      setVal('time',     rd.time);
+      setVal('track',    rd.track);
+      setVal('distance', rd.distance);
+      // select için surface ve type
+      var surfEl = document.getElementById('r' + rId + '-surface');
+      if (surfEl) surfEl.value = rd.surface;
+      var typeEl = document.getElementById('r' + rId + '-type');
+      if (typeEl) typeEl.value = rd.type;
+
+      race.horses.forEach(function(horse) {
+        if (!horse._csvData) return;
+        var hId = horse.id;
+        var hd = horse._csvData;
+        var setH = function(field, val) {
+          var el = document.getElementById('h' + hId + '-' + field);
+          if (el) el.value = val;
+        };
+        setH('number',    hd.number);
+        setH('name',      hd.name);
+        setH('jockey',    hd.jockey);
+        setH('weight',    hd.weight);
+        setH('age',       hd.age);
+        setH('lastRuns',  hd.lastRuns.join(','));
+        setH('odds',      hd.odds);
+        setH('agf',       hd.agf);
+        setH('jockeyWin', hd.jockeyWinRate);
+        setH('trainerWin',hd.trainerWinRate);
+        setH('distMin',   hd.preferredDistanceMin);
+        setH('distMax',   hd.preferredDistanceMax);
+        var surfEl2 = document.getElementById('h' + hId + '-surface');
+        if (surfEl2) surfEl2.value = hd.surface;
+        var prefEl = document.getElementById('h' + hId + '-prefSurface');
+        if (prefEl) prefEl.value = hd.preferredSurface;
+        var favEl = document.getElementById('h' + hId + '-fav');
+        if (favEl) favEl.checked = hd.isFavorite;
+      });
+    });
+  }, 80);
+}
+
+function showCSVStatus(msg, type) {
+  var el = document.getElementById('csv-status');
+  el.textContent = msg;
+  el.className = 'csv-status ' + type;
+}
+
+function loadCSV() {
+  var text = document.getElementById('csv-paste-area').value.trim();
+  if (!text) { showCSVStatus('⚠ CSV alanı boş — dosya seç veya yapıştır.', 'err'); return; }
+  var result = csvTextToRaces(text);
+  if (result.races.length === 0) {
+    showCSVStatus('⚠ Hiç koşu verisi bulunamadı. ' + (result.errors[0] || ''), 'err');
+    return;
+  }
+  injectCSVRaces(result);
+  var msg = '✓ ' + result.races.length + ' koşu, ' +
+    result.races.reduce(function(s,r){ return s + r.horses.length; }, 0) + ' at yüklendi.';
+  if (result.errors.length > 0) msg += '  ⚠ ' + result.errors.length + ' satır atlandı.';
+  showCSVStatus(msg, result.errors.length > 0 ? 'inf' : 'ok');
+  document.getElementById('csv-paste-area').value = '';
+}
+
+function handleCSVFile(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('csv-paste-area').value = e.target.result;
+    showCSVStatus('✓ Dosya yüklendi: ' + file.name + ' — "CSV\'den Yükle" butonuna bas.', 'inf');
+  };
+  reader.onerror = function() { showCSVStatus('⚠ Dosya okunamadı.', 'err'); };
+  reader.readAsText(file, 'UTF-8');
+  // Input'u sıfırla (aynı dosya tekrar seçilebilsin)
+  event.target.value = '';
+}
+
+function downloadSampleCSV() {
+  var blob = new Blob([SAMPLE_CSV], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'khell-ornek.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function copyCSVTemplate() {
+  var header = CSV_COLS.join(',');
+  navigator.clipboard.writeText(header).then(function(){
+    showCSVStatus('✓ Kolon başlıkları panoya kopyalandı!', 'ok');
+  }).catch(function(){
+    var ta = document.createElement('textarea');
+    ta.value = header;
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showCSVStatus('✓ Kolon başlıkları panoya kopyalandı!', 'ok');
+  });
+}
+
+// Drag-drop desteği
+(function setupDragDrop(){
+  var zone = document.getElementById('csv-drop-zone');
+  if (!zone) return;
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', function(){ zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', function(e){
+    e.preventDefault(); zone.classList.remove('drag-over');
+    var file = e.dataTransfer.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      document.getElementById('csv-paste-area').value = ev.target.result;
+      showCSVStatus('✓ Dosya sürüklendi: ' + file.name + ' — "CSV\'den Yükle" butonuna bas.', 'inf');
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+})();
 
 // ─── INIT ────────────────────────────────────────────
 (function init(){
