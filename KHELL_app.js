@@ -310,7 +310,7 @@
     return list;
   }
 
-  function openDetail(idx){
+  window.openDetail = function openDetail(idx){
     const a = allAnalyses[idx];
     if(!a) return;
 
