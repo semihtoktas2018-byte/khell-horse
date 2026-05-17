@@ -588,6 +588,80 @@
     `).join("");
   }
 
+  // ── BÜLTEN VIEW ──────────────────────────────────────
+  function renderBulletin(filterTrack){
+    const meta = (window.KHELL_RACES && window.KHELL_RACES._meta)
+               || (window.KhellParser && window.KhellParser._lastMeta)
+               || {};
+    const dateEl = q("bulletinDate");
+    if(dateEl) dateEl.textContent = meta.date || races[0]?.time && new Date().toLocaleDateString("tr-TR") || "--";
+
+    // Pist listesini races'den çıkar
+    const tracks = [...new Set(races.map(r => r.track || "").filter(Boolean))];
+
+    // Filtre butonları
+    const filterEl = q("bulletinFilters");
+    if(filterEl){
+      const active = filterTrack || "Tümü";
+      filterEl.innerHTML = ["Tümü", ...tracks].map(t =>
+        `<button class="bul-filter-btn ${t === active ? "bul-filter-active" : ""}"
+          onclick="window.khellBulletinFilter('${t}')">${t}</button>`
+      ).join("");
+    }
+
+    // Koşuları filtrele
+    const filtered = filterTrack && filterTrack !== "Tümü"
+      ? races.filter(r => (r.track || "") === filterTrack)
+      : races;
+
+    const contentEl = q("bulletinContent");
+    if(!contentEl) return;
+
+    if(filtered.length === 0){
+      contentEl.innerHTML = `<p class="bul-empty">Gösterilecek koşu bulunamadı.</p>`;
+      return;
+    }
+
+    contentEl.innerHTML = filtered.map((r, ri) => {
+      // allAnalyses içinde bu koşuyu bul (raceName eşleşmesi)
+      const analysisIdx = allAnalyses.findIndex(a => a.raceName === r.raceName);
+      const horseCount  = Array.isArray(r.horses) ? r.horses.length : 0;
+      const surface     = r.surface || "çim";
+      const surfCls     = surface === "çim" ? "bul-surf-cim" : surface === "kum" ? "bul-surf-kum" : "bul-surf-other";
+
+      return `
+      <div class="bul-card">
+        <div class="bul-card-top">
+          <div class="bul-race-num">${ri + 1}</div>
+          <div class="bul-race-info">
+            <div class="bul-race-name">${r.raceName || `${ri+1}. Koşu`}</div>
+            <div class="bul-race-meta">
+              <span class="bul-chip">🕐 ${r.time || "--:--"}</span>
+              <span class="bul-chip">📍 ${r.track || "-"}</span>
+              <span class="bul-chip bul-dist">📏 ${r.distance || "-"}m</span>
+              <span class="bul-chip ${surfCls}">⬛ ${surface}</span>
+              <span class="bul-chip">🏷 ${r.type || "-"}</span>
+            </div>
+          </div>
+        </div>
+        <div class="bul-card-bottom">
+          <span class="bul-horse-count">
+            ${horseCount > 0
+              ? `🐴 ${horseCount} at`
+              : `<span class="bul-no-horses">At listesi henüz yüklenmedi</span>`}
+          </span>
+          ${analysisIdx >= 0 && horseCount > 0
+            ? `<button class="bul-analyze-btn" onclick="openDetail(${analysisIdx})">Analize Git →</button>`
+            : `<span class="bul-no-analysis">—</span>`}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  window.khellBulletinFilter = function(track){
+    renderBulletin(track === "Tümü" ? null : track);
+  };
+
   function setupNav(){
     document.querySelectorAll(".nav-btn").forEach(btn=>{
       btn.addEventListener("click",()=>{
@@ -596,6 +670,7 @@
         document.querySelectorAll(".view").forEach(v=>v.classList.remove("view-active"));
         q(`view-${btn.dataset.view}`).classList.add("view-active");
         window.scrollTo({top:0,behavior:"smooth"});
+        if(btn.dataset.view === "bulletin") renderBulletin();
       });
     });
   }
