@@ -265,14 +265,18 @@
   function khellHorseTag(h, isPick){
     const sc  = h.surpriseScore || 70;
     const rs  = h.riskScore     || 35;
-    const odd = parseFloat(h.odds) || 5;
-    if(!h.jockey && !h.odds)          return {label:"Veri Sınırlı",       cls:"tag-watch"};
-    if(h.isFavorite && rs >= 60)      return {label:"Riskli Favori",      cls:"tag-risk"};
-    if(sc >= 82 && odd >= 8)          return {label:"Değerli Oran Adayı", cls:"tag-value"};
-    if(sc >= 82)                      return {label:"Sürpriz Potansiyeli",cls:"tag-surprise"};
-    if(isPick)                        return {label:"Tabela Adayı",       cls:"tag-tabela"};
-    if(rs >= 65)                      return {label:"Riskli",             cls:"tag-risk"};
-    return                                   {label:"İzlemeye Değer",     cls:"tag-watch"};
+    const odd = parseFloat(h.odds) || 0;
+    const agf = parseFloat(h.agf)  || 0;
+    const hasOdds = odd > 0;
+    const hasAgf  = agf > 0;
+    if(!h.jockey && !hasOdds)             return {label:"Veri Sınırlı",       cls:"tag-watch"};
+    if(h.isFavorite && rs >= 60)          return {label:"Riskli Favori",      cls:"tag-risk"};
+    if(sc >= 82 && hasOdds && odd >= 8
+       && hasAgf)                         return {label:"Değerli Oran Adayı", cls:"tag-value"};
+    if(sc >= 82)                          return {label:"Sürpriz Potansiyeli",cls:"tag-surprise"};
+    if(isPick)                            return {label:"Tabela Adayı",       cls:"tag-tabela"};
+    if(rs >= 65)                          return {label:"Riskli",             cls:"tag-risk"};
+    return                                       {label:"İzlemeye Değer",     cls:"tag-watch"};
   }
 
   function horseStrengths(h){
@@ -311,15 +315,32 @@
     if(!a) return;
     const horses = (a.horses || [])
       .filter(isValidHorse)
-      .map(h => ({
-        ...h,
-        number:        resolveHorseNum(h),
-        name:          resolveHorseName(h),
-        formScore:     h.formScore     || 70,
-        surpriseScore: h.surpriseScore || 70,
-        riskScore:     h.riskScore     || 35,
-        odds:          h.odds          || "-"
-      }));
+      .map(h => {
+        const jockey   = h.jockey   || h.jokey      || h.jockeyName  || null;
+        const weight   = h.weight   || h.kilo        || h.agirlik     || null;
+        const age      = h.age      || h.yas         || null;
+        const odds     = h.odds     || h.oran        || h.ganyanOran  || null;
+        const agf      = h.agf      || h.AGF         || h.kgsAgf      || null;
+        const lastRuns = Array.isArray(h.lastRuns)    ? h.lastRuns
+                       : Array.isArray(h.sonKosular)  ? h.sonKosular
+                       : Array.isArray(h.form)        ? h.form
+                       : Array.isArray(h.runs)        ? h.runs
+                       : [];
+        return {
+          ...h,
+          number:        resolveHorseNum(h),
+          name:          resolveHorseName(h),
+          formScore:     h.formScore     || 70,
+          surpriseScore: h.surpriseScore || 70,
+          riskScore:     h.riskScore     || 35,
+          jockey,
+          weight,
+          age,
+          odds,
+          agf,
+          lastRuns,
+        };
+      });
 
     const pickNo      = a.hiddenBomb?.horseNumber;
     const bombH       = horses.find(h => h.number == pickNo) || horses[0];
@@ -382,9 +403,9 @@
                   ${isPick ? '<span class="pick-star">★</span>' : ""}
                 </div>
                 <div class="acc-sub-row">
-                  <span class="acc-sub-item">👤 ${h.jockey || "-"}</span>
-                  <span class="acc-sub-item">⚖️ ${h.weight || "-"}kg</span>
-                  <span class="acc-sub-item">📅 ${h.age || "-"}y</span>
+                  <span class="acc-sub-item">👤 ${h.jockey || "Jokey -"}</span>
+                  ${h.weight ? `<span class="acc-sub-item">⚖️ ${h.weight}kg</span>` : `<span class="acc-sub-item" style="color:var(--muted)">Kilo -</span>`}
+                  ${h.age    ? `<span class="acc-sub-item">📅 ${h.age}y</span>`    : `<span class="acc-sub-item" style="color:var(--muted)">Yaş -</span>`}
                 </div>
                 <!-- Form rozetleri -->
                 <div class="acc-form-row">${dots}</div>
@@ -393,7 +414,7 @@
               <!-- Sağ: skorlar + ok -->
               <div class="acc-right">
                 <div class="acc-odds-block">
-                  <span class="acc-odds-val">${h.odds}</span>
+                  <span class="acc-odds-val">${h.odds || "-"}</span>
                   <span class="acc-odds-lbl">ORAN</span>
                 </div>
                 <div class="acc-score-block">
@@ -408,7 +429,7 @@
             <!-- ETİKET BANDI -->
             <div class="acc-tag-band">
               <span class="acc-tag ${tag.cls}">${tag.label}</span>
-              <span class="acc-tag-agf">AGF ${h.agf || "-"}</span>
+              ${h.agf ? `<span class="acc-tag-agf">AGF ${h.agf}</span>` : ""}
             </div>
 
             <!-- ACCORDION DETAY -->
