@@ -313,32 +313,38 @@
   function openDetail(idx){
     const a = allAnalyses[idx];
     if(!a) return;
+
+    // Orijinal at verisi (latest.json'dan) — scoring bazı alanları düşürmüş olabilir
+    const origHorses = (a.race && Array.isArray(a.race.horses)) ? a.race.horses : [];
+
     const horses = (a.horses || [])
       .filter(isValidHorse)
       .map(h => {
-        const jockey   = h.jockey   || h.jokey      || h.jockeyName  || null;
-        const weight   = h.weight   || h.kilo        || h.agirlik     || null;
-        const age      = h.age      || h.yas         || null;
-        const odds     = h.odds     || h.oran        || h.ganyanOran  || null;
-        const agf      = h.agf      || h.AGF         || h.kgsAgf      || null;
-        const lastRuns = Array.isArray(h.lastRuns)    ? h.lastRuns
-                       : Array.isArray(h.sonKosular)  ? h.sonKosular
-                       : Array.isArray(h.form)        ? h.form
-                       : Array.isArray(h.runs)        ? h.runs
+        // Scoring sonucundaki at ile orijinal at verisini numaraya göre eşleştir
+        const num  = resolveHorseNum(h);
+        const orig = origHorses.find(o => String(resolveHorseNum(o)) === String(num)) || {};
+
+        // Her alan için: scoring sonucu → orijinal veri → fallback
+        const jockey   = h.jockey   || orig.jockey   || h.jokey      || orig.jokey   || null;
+        const weight   = h.weight   || orig.weight   || h.kilo        || orig.kilo    || null;
+        const age      = h.age      || orig.age      || h.yas         || orig.yas     || null;
+        const odds     = h.odds     || orig.odds     || h.oran        || orig.oran    || null;
+        const agf      = h.agf      || orig.agf      || h.AGF         || orig.AGF     || null;
+        const lastRuns = Array.isArray(h.lastRuns)   ? h.lastRuns
+                       : Array.isArray(orig.lastRuns)? orig.lastRuns
+                       : Array.isArray(h.sonKosular) ? h.sonKosular
+                       : Array.isArray(h.form)       ? h.form
                        : [];
+
         return {
-          ...h,
-          number:        resolveHorseNum(h),
-          name:          resolveHorseName(h),
+          ...orig,   // önce orijinal tüm alanlar
+          ...h,      // üstüne scoring eklemeleri (formScore, surpriseScore vb.)
+          number:        num,
+          name:          resolveHorseName(h) || resolveHorseName(orig),
           formScore:     h.formScore     || 70,
           surpriseScore: h.surpriseScore || 70,
           riskScore:     h.riskScore     || 35,
-          jockey,
-          weight,
-          age,
-          odds,
-          agf,
-          lastRuns,
+          jockey, weight, age, odds, agf, lastRuns,
         };
       });
 
