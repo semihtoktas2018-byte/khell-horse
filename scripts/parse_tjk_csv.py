@@ -8,24 +8,20 @@ Koşmaz olarak işaretli atlar dahil edilmez.
 Oranlar akşam belli olduğu için şimdilik sabit (10) atanır.
 """
 
+import argparse
 import csv
 import glob
 import json
 import os
 import re
 import sys
-from datetime import datetime
 
 # Ata eklenen ekipman/işaret kodları (isimden temizlenir)
 SUFFIX_CODES = {"KG", "K", "DB", "SK", "SKG", "SGKR", "GKR", "ÖG"}
 
-TRACK = "Elazığ"
-DATE = "2026-09-16"
-UPDATED = "2026-09-16T22:14:00"
 
-
-def find_csv():
-    """Yükleme klasörlerinde ismi 'Elaz' içeren .csv dosyasını bulur."""
+def find_csv(name_filter=None):
+    """Yükleme klasörlerinde .csv dosyası bulur; name_filter verilirse ismine göre süzer."""
     search_dirs = [
         "/mnt/user-data/uploads",
         "/root/.claude/uploads",
@@ -36,11 +32,8 @@ def find_csv():
             continue
         for path in glob.glob(os.path.join(base, "**", "*.csv"), recursive=True):
             fname = os.path.basename(path)
-            if "Elaz" in fname or "elaz" in fname.lower():
+            if name_filter is None or name_filter.lower() in fname.lower():
                 return path
-    # Son çare: komut satırı argümanı
-    if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-        return sys.argv[1]
     return None
 
 
@@ -131,10 +124,28 @@ def is_horse_row(fields):
     return len(fields) >= 13 and re.fullmatch(r"\d+", fields[0].strip()) is not None
 
 
+def parse_args():
+    p = argparse.ArgumentParser(description="TJK CSV -> data/latest.json")
+    p.add_argument("csv", nargs="?", help="CSV dosya yolu (verilmezse yükleme klasörlerinde aranır)")
+    p.add_argument("--find", help="Yükleme klasörlerinde dosya ismini süzmek için anahtar (örn. Ankara)")
+    p.add_argument("--date", required=True, help="_meta.date (YYYY-MM-DD)")
+    p.add_argument("--track", required=True, help="_meta.track ve koşu pisti adı")
+    p.add_argument("--updated", required=True, help="_meta.updated")
+    p.add_argument("--source", default="TJK CSV", help="_meta.source")
+    p.add_argument("--note", default="Günlük yarış verisi.", help="_meta.note")
+    return p.parse_args()
+
+
 def main():
-    csv_path = find_csv()
+    args = parse_args()
+    TRACK = args.track
+
+    if args.csv and os.path.isfile(args.csv):
+        csv_path = args.csv
+    else:
+        csv_path = find_csv(args.find or args.track)
     if not csv_path:
-        print("HATA: Elazığ CSV dosyası bulunamadı.", file=sys.stderr)
+        print("HATA: CSV dosyası bulunamadı.", file=sys.stderr)
         sys.exit(1)
     print(f"CSV bulundu: {csv_path}")
 
@@ -211,11 +222,11 @@ def main():
 
     output = {
         "_meta": {
-            "date": DATE,
+            "date": args.date,
             "track": TRACK,
-            "updated": UPDATED,
-            "source": "TJK CSV",
-            "note": "Günlük yarış verisi.",
+            "updated": args.updated,
+            "source": args.source,
+            "note": args.note,
         },
         "races": races,
     }
